@@ -1,0 +1,30 @@
+name: Agent Git CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  agent-git:
+    name: agent-git
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GIT_LFS_SKIP_SMUDGE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+      - name: Shell syntax
+        run: bash -n tools/agent-git/publish.sh tools/agent-git/test-publish.sh
+      - name: Diff whitespace
+        run: git diff --check HEAD^ HEAD
+      - name: Agent Git integration tests
+        run: bash tools/agent-git/test-publish.sh

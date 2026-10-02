@@ -20,3 +20,5 @@ bash tools/agent-git/publish.sh "$PWD" instinctlab 'chore: update agent git rule
 ```
 
 代码任务必须换成对应测试命令。root 的 setup-forks.sh 依赖完整工作区；仓库内 publish.sh 可独立运行。
+
+AGENT_GIT_SMOKE=pass

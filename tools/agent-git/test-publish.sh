@@ -49,6 +49,7 @@ fi
 exec "$AGENT_TEST_GIT" "$@"
 SHIM
 chmod +x "$work/bin/git"
+git -C "$repo" remote set-url origin https://github.com/cocokele1233/InstinctLab.git
 AGENT_TEST_GIT="$real_git" AGENT_TEST_REMOTE="$remote" PATH="$(cd "$work/bin" && pwd):$PATH" bash "$script" "$repo" instinctlab 'test commit' true -- task.txt
 [[ $(git -C "$repo" diff-tree --no-commit-id --name-only -r HEAD) == task.txt ]]
 [[ -f "$repo/unrelated.txt" ]]

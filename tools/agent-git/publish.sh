@@ -14,10 +14,16 @@ case "$name" in instinctlab|instinct_rl) ;; *) echo '不允许的仓库' >&2; ex
 cd "$repo"
 [[ $(git rev-parse --show-toplevel) == "$repo" ]] || { echo '必须指定仓库根目录' >&2; exit 1; }
 expected="https://github.com/cocokele1233/$name.git"
-[[ $(git config --get-all remote.origin.url) == "$expected" ]] || { echo 'origin 不是已配置的个人 Fork' >&2; exit 1; }
+origin_url=$(git config --get-all remote.origin.url)
+[[ ${origin_url,,} == "$expected" ]] || { echo 'origin 不是已配置的个人 Fork' >&2; exit 1; }
 pushurl=$(git config --get-all remote.origin.pushurl || true)
-[[ -z $pushurl || $pushurl == "$expected" ]] || { echo 'origin 推送地址未启用或不属于个人 Fork' >&2; exit 1; }
-[[ $(git remote get-url --push --all origin) == "$expected" ]] || { echo '实际推送地址被重写或包含多个地址' >&2; exit 1; }
+[[ -z $pushurl || ${pushurl,,} == "$expected" ]] || { echo 'origin 推送地址未启用或不属于个人 Fork' >&2; exit 1; }
+check_push_target() {
+  local target
+  target=$(git remote get-url --push --all origin)
+  [[ ${target,,} == "$expected" ]] || { echo '实际推送地址被重写或包含多个地址' >&2; exit 1; }
+}
+check_push_target
 branch=$(git symbolic-ref --short HEAD)
 [[ $branch == agent/* ]] || { echo '请先建立 agent/ 任务分支' >&2; exit 1; }
 [[ -z $(git diff --cached --name-only) ]] || { echo '索引已有暂存内容，请先审查；脚本不会清除它' >&2; exit 1; }
@@ -27,7 +33,7 @@ done
 before=$(git rev-parse HEAD)
 bash -e -o pipefail -c "$check"
 [[ $(git rev-parse HEAD) == "$before" && -z $(git diff --cached --name-only) ]] || { echo '测试期间 HEAD 或索引改变，请审查' >&2; exit 1; }
-[[ $(git remote get-url --push --all origin) == "$expected" ]] || { echo '实际推送地址被重写或包含多个地址' >&2; exit 1; }
+check_push_target
 [[ $(git symbolic-ref --short HEAD) == "$branch" ]] || { echo '测试改变了任务分支' >&2; exit 1; }
 git diff --check -- "$@"
 backup="backup/agent-$(date -u +%Y%m%dT%H%M%SZ)-$$"
@@ -36,6 +42,6 @@ git --literal-pathspecs add -- "$@"
 [[ -n $(git diff --cached --name-only) ]] || { echo '没有可提交的任务改动' >&2; exit 1; }
 git diff --cached --check
 git commit -m "$message"
-[[ $(git remote get-url --push --all origin) == "$expected" ]] || { echo '实际推送地址被重写或包含多个地址' >&2; exit 1; }
+check_push_target
 git push --set-upstream origin "$branch"
 printf '恢复点: %s\n' "$backup"
